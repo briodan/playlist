@@ -4,7 +4,7 @@ Guests scan a QR code, search for songs, and add them to your Spotify playlist. 
 
 **Multi-host:** each person who wants to run their own party connects their own Spotify account — no separate deployment needed.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fbriodan%2Fplaylist&env=SPOTIFY_CLIENT_ID,SPOTIFY_CLIENT_SECRET,APP_URL&envDescription=Create%20a%20Spotify%20app%20at%20developer.spotify.com%2Fdashboard%20to%20get%20these%20values&project-name=party-playlist&repository-name=party-playlist&stores=%5B%7B%22type%22%3A%22kv%22%7D%5D)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fbriodan%2Fplaylist&env=SPOTIFY_CLIENT_ID,SPOTIFY_CLIENT_SECRET&envDescription=Create%20a%20Spotify%20app%20at%20developer.spotify.com%2Fdashboard%20to%20get%20these%20values&project-name=party-playlist&repository-name=party-playlist&stores=%5B%7B%22type%22%3A%22kv%22%7D%5D)
 
 ## After deploying
 
@@ -24,6 +24,5 @@ Send people the link to your deployed app. They visit `/host`, connect their own
 |---|---|
 | `SPOTIFY_CLIENT_ID` | From [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) |
 | `SPOTIFY_CLIENT_SECRET` | From Spotify Developer Dashboard |
-| `APP_URL` | Your Vercel URL, e.g. `https://party-playlist.vercel.app` |
 
 KV storage is provisioned automatically by the deploy button.

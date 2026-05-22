@@ -5,11 +5,8 @@
  */
 export default function handler(req, res) {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
-  const appUrl = process.env.APP_URL;
-
-  if (!clientId || !appUrl) {
-    return res.status(500).send('SPOTIFY_CLIENT_ID and APP_URL must be set.');
-  }
+  if (!clientId) return res.status(500).send('SPOTIFY_CLIENT_ID must be set.');
+  const appUrl = process.env.APP_URL || `https://${req.headers.host}`;
 
   // Generate a new hostId for this auth attempt (the callback will check
   // if this Spotify user already has one and reuse it if so).

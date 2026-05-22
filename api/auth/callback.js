@@ -17,7 +17,8 @@ export default async function handler(req, res) {
   if (error) return res.redirect(`/host?error=${encodeURIComponent(error)}`);
   if (!code || !UUID_RE.test(state)) return res.redirect('/host?error=invalid_callback');
 
-  const { SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, APP_URL } = process.env;
+  const { SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET } = process.env;
+    const APP_URL = process.env.APP_URL || `https://${req.headers.host}`;
 
   try {
     // Exchange code for tokens

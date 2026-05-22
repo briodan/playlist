@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 
   try {
     const events = await getPartyPlaylists(hostId);
-    const appUrl = process.env.APP_URL || '';
+    const appUrl = process.env.APP_URL || `https://${req.headers.host}`;
     return res.status(200).json({
       events: events.map(e => ({ ...e, guestUrl: `${appUrl}/e/${e.id}` })),
     });

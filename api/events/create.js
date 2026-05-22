@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     // Record which host owns this event so guest APIs can use the right token
     await setEventHost(playlist.id, hostId);
 
-    const appUrl = process.env.APP_URL || '';
+    const appUrl = process.env.APP_URL || `https://${req.headers.host}`;
     return res.status(201).json({
       id: playlist.id,
       name: playlist.name,
