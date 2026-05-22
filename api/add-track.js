@@ -58,7 +58,7 @@ export default async function handler(req, res) {
     const checkRes = await spotifyFetch(hostId, `/playlists/${eventId}/items?limit=50`);
     if (checkRes.ok) {
       const { items = [] } = await checkRes.json();
-      if (items.map(i => i.track?.uri).includes(trackUri)) {
+      if (items.map(i => i.item?.uri).includes(trackUri)) {
         return res.status(409).json({ error: 'That song is already in the playlist!' });
       }
     }

@@ -29,24 +29,24 @@ export default async function handler(req, res) {
     const tracksData = JSON.parse(tracksBody);
     const rawItems = tracksData.items || [];
     const tracks = rawItems
-      .filter(i => i.track)
+      .filter(i => i.item && i.item.type === 'track')
       .map(i => ({
-        id: i.track.id,
-        name: i.track.name,
-        artists: i.track.artists.map(a => a.name).join(', '),
-        album: i.track.album?.name,
-        image: i.track.album?.images?.[1]?.url || i.track.album?.images?.[0]?.url || null,
-        duration_ms: i.track.duration_ms,
-        uri: i.track.uri,
+        id: i.item.id,
+        name: i.item.name,
+        artists: i.item.artists.map(a => a.name).join(', '),
+        album: i.item.album?.name,
+        image: i.item.album?.images?.[1]?.url || i.item.album?.images?.[0]?.url || null,
+        duration_ms: i.item.duration_ms,
+        uri: i.item.uri,
       }));
 
+    res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=20');
     return res.status(200).json({
       name: info.name,
       description: info.description,
       image: info.images?.[0]?.url || null,
       url: info.external_urls?.spotify || null,
       tracks,
-      _debug: { rawTotal: tracksData.total, rawItemCount: rawItems.length, filteredCount: tracks.length, firstItemKeys: rawItems[0] ? Object.keys(rawItems[0]) : [], firstItem: rawItems[0] || null },
     });
   } catch (err) {
     console.error(err);
