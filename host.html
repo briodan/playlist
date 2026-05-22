@@ -207,6 +207,13 @@ async function loadDashboard() {
 
     badge.textContent = 'Spotify connected';
     badge.style.color = '#4ade80';
+    // Add reconnect link next to badge
+    const hdr = badge.parentElement;
+    const reconnectLink = document.createElement('a');
+    reconnectLink.href = '/api/auth/logout';
+    reconnectLink.style.cssText = 'font-size:0.72rem;color:var(--text-dim);text-decoration:none;margin-left:8px;';
+    reconnectLink.textContent = 'Reconnect';
+    hdr.appendChild(reconnectLink);
     renderEventList(content, data.events || []);
   } catch (err) {
     badge.textContent = 'Error';
