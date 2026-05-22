@@ -19,7 +19,7 @@ export default function handler(req, res) {
     client_id: clientId,
     response_type: 'code',
     redirect_uri: `${appUrl}/api/auth/callback`,
-    scope: 'playlist-modify-public playlist-modify-private playlist-read-private',
+    scope: 'playlist-modify-public playlist-read-private',
     state: hostId,
     show_dialog: 'false',
   });
