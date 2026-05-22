@@ -1,9 +1,6 @@
 const { spotifyFetch } = require('../_spotify');
+const { getEventHost } = require('../_kv');
 
-/**
- * Public endpoint: returns basic info about an event playlist.
- * Used by the guest page to display the event name and image.
- */
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end();
 
@@ -13,20 +10,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const r = await spotifyFetch(
-      `/playlists/${id}?fields=id,name,description,images,external_urls`
-    );
+    const hostId = await getEventHost(id);
+    if (!hostId) return res.status(404).json({ error: 'Event not found' });
 
-    if (r.status === 404) {
-      return res.status(404).json({ error: 'Event not found' });
-    }
-    if (!r.ok) {
-      return res.status(502).json({ error: 'Failed to fetch event' });
-    }
+    const r = await spotifyFetch(hostId, `/playlists/${id}?fields=id,name,description,images,external_urls`);
+    if (r.status === 404) return res.status(404).json({ error: 'Event not found' });
+    if (!r.ok) return res.status(502).json({ error: 'Failed to fetch event' });
 
     const data = await r.json();
-
-    // Only expose playlists created by this app.
     if (!data.description?.includes('[PartyQueue]')) {
       return res.status(404).json({ error: 'Event not found' });
     }

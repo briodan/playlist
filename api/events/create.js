@@ -1,12 +1,12 @@
-const { checkHostAuth } = require('../_auth');
+const { getHostId } = require('../_auth');
 const { createPlaylist } = require('../_spotify');
+const { setEventHost } = require('../_kv');
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  if (!checkHostAuth(req)) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  const hostId = getHostId(req);
+  if (!hostId) return res.status(401).json({ error: 'not_authenticated' });
 
   let name;
   try {
@@ -20,7 +20,11 @@ export default async function handler(req, res) {
   if (name.length > 100) return res.status(400).json({ error: 'Name too long (max 100 chars)' });
 
   try {
-    const playlist = await createPlaylist(name);
+    const playlist = await createPlaylist(hostId, name);
+
+    // Record which host owns this event so guest APIs can use the right token
+    await setEventHost(playlist.id, hostId);
+
     const appUrl = process.env.APP_URL || '';
     return res.status(201).json({
       id: playlist.id,

@@ -1,47 +1,34 @@
 /**
- * Shared Spotify API helper.
- * - Access token cached in module scope (refreshed when near-expiry).
- * - Refresh token read from Vercel KV (set automatically by OAuth callback),
- *   with fallback to SPOTIFY_REFRESH_TOKEN env var for local dev.
+ * Shared Spotify API helper — multi-host aware.
+ * Each host has their own refresh token stored in KV under their hostId.
+ * Access tokens are cached in module scope per hostId.
  */
 
-const { getRefreshToken } = require('./_kv');
+const { getHostToken, setHostToken } = require('./_kv');
 
-let cachedToken = null;
-let tokenExpiry = 0;
-let cachedUserId = null;
+const tokenCache = new Map(); // hostId -> { token, expiry }
+const userIdCache = new Map(); // hostId -> spotifyUserId
 
-async function getAccessToken() {
-  if (cachedToken && Date.now() < tokenExpiry - 60_000) {
-    return cachedToken;
+async function getAccessToken(hostId) {
+  const cached = tokenCache.get(hostId);
+  if (cached && Date.now() < cached.expiry - 60_000) {
+    return cached.token;
+  }
+
+  const refreshToken = await getHostToken(hostId);
+  if (!refreshToken) {
+    throw new Error('Spotify not connected. Visit /host to connect your Spotify account.');
   }
 
   const { SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET } = process.env;
-
-  // Prefer KV-stored token (set via OAuth); fall back to env var (local dev).
-  const refreshToken =
-    (await getRefreshToken()) || process.env.SPOTIFY_REFRESH_TOKEN;
-
-  if (!refreshToken) {
-    throw new Error(
-      'Spotify is not connected. Visit /host to complete the Spotify setup.'
-    );
-  }
-
   const res = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       Authorization:
-        'Basic ' +
-        Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString(
-          'base64'
-        ),
+        'Basic ' + Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64'),
     },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-    }),
+    body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken }),
   });
 
   if (!res.ok) {
@@ -50,14 +37,17 @@ async function getAccessToken() {
   }
 
   const data = await res.json();
-  cachedToken = data.access_token;
-  tokenExpiry = Date.now() + data.expires_in * 1000;
-  return cachedToken;
+  tokenCache.set(hostId, { token: data.access_token, expiry: Date.now() + data.expires_in * 1000 });
+
+  // Spotify occasionally rotates the refresh token — persist the new one.
+  if (data.refresh_token) await setHostToken(hostId, data.refresh_token);
+
+  return data.access_token;
 }
 
-async function spotifyFetch(path, options = {}) {
-  const token = await getAccessToken();
-  const res = await fetch(`https://api.spotify.com/v1${path}`, {
+async function spotifyFetch(hostId, path, options = {}) {
+  const token = await getAccessToken(hostId);
+  return fetch(`https://api.spotify.com/v1${path}`, {
     ...options,
     headers: {
       Authorization: `Bearer ${token}`,
@@ -65,26 +55,22 @@ async function spotifyFetch(path, options = {}) {
       ...(options.headers || {}),
     },
   });
-  return res;
 }
 
-/** Returns the authenticated user's Spotify ID (cached). */
-async function getMe() {
-  if (cachedUserId) return cachedUserId;
-  const res = await spotifyFetch('/me');
-  if (!res.ok) throw new Error('Failed to fetch Spotify user profile');
-  const data = await res.json();
-  cachedUserId = data.id;
-  return cachedUserId;
+/** Returns the Spotify user ID for this host (cached). */
+async function getMe(hostId) {
+  if (userIdCache.has(hostId)) return userIdCache.get(hostId);
+  const res = await spotifyFetch(hostId, '/me');
+  if (!res.ok) throw new Error('Failed to fetch Spotify profile');
+  const { id } = await res.json();
+  userIdCache.set(hostId, id);
+  return id;
 }
 
-/**
- * Creates a new Spotify playlist for the authenticated user.
- * Tags it with [PartyQueue] in the description so we can list our playlists.
- */
-async function createPlaylist(name) {
-  const userId = await getMe();
-  const res = await spotifyFetch(`/users/${userId}/playlists`, {
+/** Creates a new tagged playlist for this host and returns its info. */
+async function createPlaylist(hostId, name) {
+  const userId = await getMe(hostId);
+  const res = await spotifyFetch(hostId, `/users/${userId}/playlists`, {
     method: 'POST',
     body: JSON.stringify({
       name,
@@ -97,32 +83,18 @@ async function createPlaylist(name) {
     throw new Error(`Failed to create playlist (${res.status}): ${text}`);
   }
   const data = await res.json();
-  return {
-    id: data.id,
-    name: data.name,
-    url: data.external_urls?.spotify || null,
-    image: data.images?.[0]?.url || null,
-  };
+  return { id: data.id, name: data.name, url: data.external_urls?.spotify || null, image: data.images?.[0]?.url || null };
 }
 
-/**
- * Lists all playlists owned by the user that were created by this app
- * (identified by [PartyQueue] in description).
- */
-async function getPartyPlaylists() {
-  const userId = await getMe();
-  // Fetch up to 50 playlists; for most users this covers everything.
-  const res = await spotifyFetch(`/users/${userId}/playlists?limit=50`);
+/** Lists all playlists owned by this host that were created by this app. */
+async function getPartyPlaylists(hostId) {
+  const userId = await getMe(hostId);
+  const res = await spotifyFetch(hostId, `/users/${userId}/playlists?limit=50`);
   if (!res.ok) throw new Error('Failed to fetch playlists');
   const data = await res.json();
   return (data.items || [])
-    .filter((p) => p.description?.includes('[PartyQueue]'))
-    .map((p) => ({
-      id: p.id,
-      name: p.name,
-      url: p.external_urls?.spotify || null,
-      image: p.images?.[0]?.url || null,
-    }));
+    .filter(p => p.description?.includes('[PartyQueue]'))
+    .map(p => ({ id: p.id, name: p.name, url: p.external_urls?.spotify || null, image: p.images?.[0]?.url || null }));
 }
 
 module.exports = { getAccessToken, spotifyFetch, getMe, createPlaylist, getPartyPlaylists };

@@ -146,75 +146,18 @@
 
 <script>
 const root = document.getElementById('root');
-let hostPassword = sessionStorage.getItem('host_password') || '';
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 function start() {
-  // Check for OAuth result in URL
   const params = new URLSearchParams(window.location.search);
   const setup = params.get('setup');
   const oauthError = params.get('error');
-  // Clean the URL
   if (setup || oauthError) history.replaceState({}, '', '/host');
 
-  if (!hostPassword) {
-    renderPasswordGate(setup, oauthError);
-  } else {
-    renderDashboard(setup, oauthError);
-  }
+  renderDashboard(setup, oauthError);
 }
 
-// ─── Password gate ────────────────────────────────────────────────────────────
-function renderPasswordGate(setup, oauthError) {
-  root.innerHTML = `
-    <div class="password-gate">
-      <div class="password-box">
-        ${spotifyLogo(44)}
-        <h2>Host Dashboard</h2>
-        <p>Enter your host password to continue</p>
-        ${oauthError ? `<div class="alert error">Spotify auth failed: ${escHtml(oauthError)}</div>` : ''}
-        <input id="pw-input" type="password" placeholder="Password" autocomplete="current-password" />
-        <button class="btn btn-primary btn-full" id="pw-btn">Sign in</button>
-      </div>
-    </div>`;
-
-  const input = document.getElementById('pw-input');
-  const btn = document.getElementById('pw-btn');
-
-  input.focus();
-
-  async function tryLogin() {
-    const pw = input.value.trim();
-    if (!pw) return;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>';
-
-    // Verify the password against the events list endpoint
-    const res = await fetch('/api/events/list', {
-      headers: { 'X-Host-Password': pw },
-    });
-
-    if (res.status === 401) {
-      btn.disabled = false;
-      btn.textContent = 'Sign in';
-      input.style.borderColor = '#ef4444';
-      input.value = '';
-      input.placeholder = 'Wrong password';
-      setTimeout(() => { input.style.borderColor = ''; input.placeholder = 'Password'; }, 2000);
-      return;
-    }
-
-    // Good password — stash and continue
-    hostPassword = pw;
-    sessionStorage.setItem('host_password', pw);
-    renderDashboard(setup, null);
-  }
-
-  btn.addEventListener('click', tryLogin);
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
-}
-
-// ─── Dashboard ────────────────────────────────────────────────────────────────
+// ─── Dashboard shell ──────────────────────────────────────────────────────────
 async function renderDashboard(setupFlag, oauthError) {
   root.innerHTML = `
     <div class="page">
@@ -227,12 +170,8 @@ async function renderDashboard(setupFlag, oauthError) {
       <div id="main-content"><div class="empty-state"><span class="spinner"></span></div></div>
     </div>`;
 
-  if (setupFlag === 'done') {
-    showAlert('success', 'Spotify connected successfully! You can now create events.');
-  }
-  if (oauthError) {
-    showAlert('error', `Spotify auth failed: ${escHtml(oauthError)}`);
-  }
+  if (setupFlag === 'done') showAlert('success', 'Spotify connected! You can now create events.');
+  if (oauthError) showAlert('error', `Spotify auth failed: ${escHtml(oauthError)}`);
 
   await loadDashboard();
 }
@@ -242,24 +181,21 @@ async function loadDashboard() {
   const badge = document.getElementById('connection-badge');
 
   try {
-    const res = await fetch('/api/events/list', {
-      headers: { 'X-Host-Password': hostPassword },
-    });
-
-    if (res.status === 401) {
-      // Password expired from session or wrong — re-prompt
-      sessionStorage.removeItem('host_password');
-      hostPassword = '';
-      renderPasswordGate(null, null);
-      return;
-    }
-
+    const res = await fetch('/api/events/list');
     const data = await res.json();
 
-    if (!res.ok && data.error === 'spotify_not_connected') {
+    if (res.status === 401) {
+      // No hostId cookie — not authenticated yet
       badge.textContent = 'Not connected';
       badge.style.color = '#f87171';
       renderSetupNeeded(content);
+      return;
+    }
+
+    if (!res.ok && data.error === 'spotify_not_connected') {
+      badge.textContent = 'Token expired';
+      badge.style.color = '#f87171';
+      renderSetupNeeded(content, true);
       return;
     }
 
@@ -279,14 +215,14 @@ async function loadDashboard() {
 }
 
 // ─── Setup needed ─────────────────────────────────────────────────────────────
-function renderSetupNeeded(container) {
+function renderSetupNeeded(container, reconnect = false) {
   const redirectUri = `${window.location.origin}/api/auth/callback`;
 
   container.innerHTML = `
     <section>
       <div class="card" style="padding: 24px;">
-        <div style="font-size:1.05rem; font-weight:700; margin-bottom:4px;">One-time Spotify setup</div>
-        <div style="font-size:0.85rem; color:var(--text-dim); margin-bottom:24px;">Two quick steps — no token copying, no manual config files.</div>
+        <div style="font-size:1.05rem; font-weight:700; margin-bottom:4px;">${reconnect ? 'Reconnect Spotify' : 'Connect your Spotify account'}</div>
+        <div style="font-size:0.85rem; color:var(--text-dim); margin-bottom:24px;">${reconnect ? 'Your session expired. Reconnect to restore access to your events.' : 'Two quick steps — no token copying, no manual config files.'}</div>
 
         <!-- Step 1 -->
         <div style="display:flex; gap:14px; margin-bottom:20px;">
@@ -336,7 +272,6 @@ function renderSetupNeeded(container) {
     });
   });
 }
-}
 
 // ─── Event list ───────────────────────────────────────────────────────────────
 function renderEventList(container, events) {
@@ -377,10 +312,7 @@ function renderEventList(container, events) {
     try {
       const res = await fetch('/api/events/create', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Host-Password': hostPassword,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
       });
       const data = await res.json();

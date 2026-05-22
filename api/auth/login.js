@@ -1,29 +1,27 @@
 /**
- * Host one-time auth flow: redirects to Spotify OAuth consent screen.
- * Visit /api/auth/login in the browser while setting up the app.
+ * Starts the Spotify OAuth flow.
+ * The hostId is passed as the OAuth `state` parameter so the callback
+ * can associate the token with the correct host — no cookie timing issues.
  */
 export default function handler(req, res) {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const appUrl = process.env.APP_URL;
 
   if (!clientId || !appUrl) {
-    return res
-      .status(500)
-      .send('SPOTIFY_CLIENT_ID and APP_URL must be set in environment variables.');
+    return res.status(500).send('SPOTIFY_CLIENT_ID and APP_URL must be set.');
   }
 
-  const scopes = [
-    'playlist-modify-public',
-    'playlist-modify-private',
-    'playlist-read-private',
-  ].join(' ');
+  // Generate a new hostId for this auth attempt (the callback will check
+  // if this Spotify user already has one and reuse it if so).
+  const hostId = crypto.randomUUID();
 
   const params = new URLSearchParams({
     client_id: clientId,
     response_type: 'code',
     redirect_uri: `${appUrl}/api/auth/callback`,
-    scope: scopes,
-    show_dialog: 'true',
+    scope: 'playlist-modify-public playlist-modify-private playlist-read-private',
+    state: hostId,
+    show_dialog: 'false',
   });
 
   res.redirect(`https://accounts.spotify.com/authorize?${params}`);

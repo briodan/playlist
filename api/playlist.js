@@ -1,4 +1,5 @@
 const { spotifyFetch } = require('./_spotify');
+const { getEventHost } = require('./_kv');
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end();
@@ -9,11 +10,12 @@ export default async function handler(req, res) {
   }
 
   try {
+    const hostId = await getEventHost(eventId);
+    if (!hostId) return res.status(404).json({ error: 'Event not found' });
+
     const [infoRes, tracksRes] = await Promise.all([
-      spotifyFetch(`/playlists/${eventId}?fields=name,description,images,external_urls`),
-      spotifyFetch(
-        `/playlists/${eventId}/tracks?fields=items(track(id,name,artists,album,duration_ms,uri))&limit=50`
-      ),
+      spotifyFetch(hostId, `/playlists/${eventId}?fields=name,description,images,external_urls`),
+      spotifyFetch(hostId, `/playlists/${eventId}/tracks?fields=items(track(id,name,artists,album,duration_ms,uri))&limit=50`),
     ]);
 
     if (!infoRes.ok || !tracksRes.ok) {
@@ -22,13 +24,12 @@ export default async function handler(req, res) {
 
     const info = await infoRes.json();
     const tracksData = await tracksRes.json();
-
     const tracks = (tracksData.items || [])
-      .filter((i) => i.track)
-      .map((i) => ({
+      .filter(i => i.track)
+      .map(i => ({
         id: i.track.id,
         name: i.track.name,
-        artists: i.track.artists.map((a) => a.name).join(', '),
+        artists: i.track.artists.map(a => a.name).join(', '),
         album: i.track.album.name,
         image: i.track.album.images[1]?.url || i.track.album.images[0]?.url || null,
         duration_ms: i.track.duration_ms,
