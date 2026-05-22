@@ -18,31 +18,35 @@ export default async function handler(req, res) {
       spotifyFetch(hostId, `/playlists/${eventId}/items?limit=50`),
     ]);
 
+    const infoBody = await infoRes.text();
+    const tracksBody = await tracksRes.text();
+
     if (!infoRes.ok || !tracksRes.ok) {
-      return res.status(502).json({ error: 'Failed to fetch playlist' });
+      return res.status(502).json({ error: 'Failed to fetch playlist', infoStatus: infoRes.status, tracksStatus: tracksRes.status, infoBody, tracksBody });
     }
 
-    const info = await infoRes.json();
-    const tracksData = await tracksRes.json();
-    const tracks = (tracksData.items || [])
+    const info = JSON.parse(infoBody);
+    const tracksData = JSON.parse(tracksBody);
+    const rawItems = tracksData.items || [];
+    const tracks = rawItems
       .filter(i => i.track)
       .map(i => ({
         id: i.track.id,
         name: i.track.name,
         artists: i.track.artists.map(a => a.name).join(', '),
-        album: i.track.album.name,
-        image: i.track.album.images[1]?.url || i.track.album.images[0]?.url || null,
+        album: i.track.album?.name,
+        image: i.track.album?.images?.[1]?.url || i.track.album?.images?.[0]?.url || null,
         duration_ms: i.track.duration_ms,
         uri: i.track.uri,
       }));
 
-    res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=20');
     return res.status(200).json({
       name: info.name,
       description: info.description,
       image: info.images?.[0]?.url || null,
       url: info.external_urls?.spotify || null,
       tracks,
+      _debug: { rawTotal: tracksData.total, rawItemCount: rawItems.length, filteredCount: tracks.length },
     });
   } catch (err) {
     console.error(err);
