@@ -21,7 +21,7 @@ export default function handler(req, res) {
     redirect_uri: `${appUrl}/api/auth/callback`,
     scope: 'playlist-modify-public',
     state: hostId,
-    show_dialog: 'false',
+    show_dialog: 'true',
   });
 
   res.redirect(`https://accounts.spotify.com/authorize?${params}`);
