@@ -1,8 +1,8 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/e/:eventId", "destination": "/public/index.html" },
-    { "source": "/host", "destination": "/public/host.html" },
-    { "source": "/", "destination": "/public/host.html" }
+    { "source": "/e/:eventId", "destination": "/index.html" },
+    { "source": "/host", "destination": "/host.html" },
+    { "source": "/", "destination": "/host.html" }
   ]
 }
