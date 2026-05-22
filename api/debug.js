@@ -38,6 +38,27 @@ export default async function handler(req, res) {
     meInfo = { error: e.message };
   }
 
+  // Test playlist creation
+  let playlistTest;
+  try {
+    const createRes = await fetch(`https://api.spotify.com/v1/users/${meInfo.id}/playlists`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Debug Test', description: 'delete me', public: false }),
+    });
+    const createBody = await createRes.json();
+    playlistTest = { status: createRes.status, body: createBody };
+    // Clean up if it worked
+    if (createRes.ok && createBody.id) {
+      await fetch(`https://api.spotify.com/v1/playlists/${createBody.id}/followers`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+    }
+  } catch (e) {
+    playlistTest = { error: e.message };
+  }
+
   return res.json({
     hostId,
     hasRefreshToken: !!refreshToken,
@@ -46,5 +67,6 @@ export default async function handler(req, res) {
     spotifyUser: meInfo.id,
     product: meInfo.product,
     displayName: meInfo.display_name,
+    playlistTest,
   });
 }
