@@ -4,13 +4,13 @@
  * Access tokens are cached in module scope per hostId.
  */
 
-const { getHostToken, setHostToken } = require('./_kv');
+const { getHostToken, setHostToken, getHostAccessToken, setHostAccessToken } = require('./_kv');
 
-const tokenCache = new Map(); // hostId -> { token, expiry }
 const userIdCache = new Map(); // hostId -> spotifyUserId
 
 async function getAccessToken(hostId) {
-  const cached = tokenCache.get(hostId);
+  // Use KV-backed cache so re-auth in any serverless instance invalidates the token
+  const cached = await getHostAccessToken(hostId);
   if (cached && Date.now() < cached.expiry - 60_000) {
     return cached.token;
   }
@@ -37,7 +37,7 @@ async function getAccessToken(hostId) {
   }
 
   const data = await res.json();
-  tokenCache.set(hostId, { token: data.access_token, expiry: Date.now() + data.expires_in * 1000 });
+  await setHostAccessToken(hostId, data.access_token, data.expires_in);
 
   // Spotify occasionally rotates the refresh token — persist the new one.
   if (data.refresh_token) await setHostToken(hostId, data.refresh_token);

@@ -7,7 +7,7 @@
  * No token copying required.
  */
 const { hostCookie } = require('../_auth');
-const { setHostToken, getHostIdBySpotifyUser, setHostIdBySpotifyUser } = require('../_kv');
+const { setHostToken, clearHostAccessToken, getHostIdBySpotifyUser, setHostIdBySpotifyUser } = require('../_kv');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -80,6 +80,7 @@ export default async function handler(req, res) {
       await setHostIdBySpotifyUser(spotifyUserId, hostId);
     }
     await setHostToken(hostId, refresh_token);
+    await clearHostAccessToken(hostId); // force fresh token exchange on next API call
   } catch (err) {
     console.error('KV error:', err);
     return res.redirect(`/host?error=${encodeURIComponent('kv_step: ' + err.message.slice(0, 100))}`);

@@ -8,6 +8,17 @@ const redis = new Redis({
 async function getHostToken(hostId) { return redis.get(`host:${hostId}:token`); }
 async function setHostToken(hostId, token) { return redis.set(`host:${hostId}:token`, token); }
 
+async function getHostAccessToken(hostId) {
+  const raw = await redis.get(`host:${hostId}:access`);
+  if (!raw) return null;
+  try { return typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { return null; }
+}
+async function setHostAccessToken(hostId, token, expiresIn) {
+  const expiry = Date.now() + expiresIn * 1000;
+  await redis.set(`host:${hostId}:access`, JSON.stringify({ token, expiry }), { ex: expiresIn - 60 });
+}
+async function clearHostAccessToken(hostId) { return redis.del(`host:${hostId}:access`); }
+
 async function getHostIdBySpotifyUser(id) { return redis.get(`spotify:${id}:hostId`); }
 async function setHostIdBySpotifyUser(id, hostId) { return redis.set(`spotify:${id}:hostId`, hostId); }
 
@@ -28,4 +39,4 @@ async function getHostEvents(hostId) {
     .filter(Boolean);
 }
 
-module.exports = { getHostToken, setHostToken, getHostIdBySpotifyUser, setHostIdBySpotifyUser, getEventHost, setEventHost, addHostEvent, getHostEvents };
+module.exports = { getHostToken, setHostToken, getHostAccessToken, setHostAccessToken, clearHostAccessToken, getHostIdBySpotifyUser, setHostIdBySpotifyUser, getEventHost, setEventHost, addHostEvent, getHostEvents };
