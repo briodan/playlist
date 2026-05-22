@@ -6,42 +6,38 @@
   <title>Party Playlist</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --green: #1db954;
-      --bg: #0a0a0a;
-      --surface: #141414;
-      --surface2: #1e1e1e;
-      --border: #2a2a2a;
-      --text: #f0f0f0;
-      --text-dim: #888;
-      --radius: 10px;
+      --green: #1db954; --bg: #0a0a0a; --surface: #141414; --surface2: #1e1e1e;
+      --border: #2a2a2a; --text: #f0f0f0; --text-dim: #888; --radius: 10px;
     }
-
     html, body { min-height: 100%; background: var(--bg); color: var(--text);
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 15px; }
-
     .app { max-width: 560px; margin: 0 auto; padding: 0 16px 80px; }
 
-    /* ── Header ── */
-    header { text-align: center; padding: 28px 0 20px; }
-    header .logo { width: 40px; height: 40px; margin: 0 auto 10px; }
-    header h1 { font-size: 1.4rem; font-weight: 700; color: var(--green); letter-spacing: -0.3px; }
-    header .event-name { font-size: 1rem; color: var(--text); font-weight: 600; margin-top: 2px; }
+    /* Header */
+    header { text-align: center; padding: 24px 0 20px; }
+    header .logo { width: 38px; height: 38px; margin: 0 auto 8px; }
+    header .event-name { font-size: 1.3rem; font-weight: 700; }
     header .subtitle { font-size: 0.85rem; color: var(--text-dim); margin-top: 4px; }
 
-    /* ── Tabs ── */
-    .tabs { display: flex; background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 4px; margin-bottom: 20px; }
-    .tab-btn { flex: 1; background: none; border: none; color: var(--text-dim);
-      padding: 9px 0; border-radius: 7px; font-size: 0.9rem; font-weight: 600;
-      cursor: pointer; transition: background 0.15s, color 0.15s; }
-    .tab-btn.active { background: var(--surface2); color: var(--text); }
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
+    /* Section labels */
+    .section-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-dim); margin: 20px 0 10px; }
 
-    /* ── Search ── */
-    .search-wrap { position: relative; margin-bottom: 16px; }
+    /* Now playing */
+    .now-playing-card { background: var(--surface); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 14px 16px; }
+    .now-playing-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--green); margin-bottom: 10px; }
+    .now-playing-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .now-playing-art { width: 52px; height: 52px; border-radius: 6px; flex-shrink: 0; object-fit: cover; }
+    .progress-bar { height: 3px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--green); border-radius: 2px; }
+    .progress-times { display: flex; justify-content: space-between; font-size: 0.72rem;
+      color: var(--text-dim); margin-top: 4px; }
+
+    /* Search */
+    .search-wrap { position: relative; }
     .search-wrap svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
       color: var(--text-dim); pointer-events: none; }
     #search-input { width: 100%; background: var(--surface); border: 1px solid var(--border);
@@ -49,86 +45,65 @@
       padding: 13px 14px 13px 42px; outline: none; transition: border-color 0.15s; }
     #search-input:focus { border-color: var(--green); }
     #search-input::placeholder { color: var(--text-dim); }
+    .clear-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 1.1rem;
+      padding: 4px; display: none; }
+    #search-input:not(:placeholder-shown) ~ .clear-btn { display: block; }
 
-    /* ── Track list ── */
+    /* Track list */
     .track-list { display: flex; flex-direction: column; gap: 8px; }
     .track-item { display: flex; align-items: center; gap: 12px; background: var(--surface);
-      border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px;
-      transition: border-color 0.15s; }
-    .track-item:hover { border-color: #444; }
-    .track-thumb { width: 48px; height: 48px; border-radius: 6px; object-fit: cover;
+      border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+    .track-thumb { width: 46px; height: 46px; border-radius: 5px; object-fit: cover;
       flex-shrink: 0; background: var(--surface2); }
-    .track-thumb-placeholder { width: 48px; height: 48px; border-radius: 6px;
+    .track-thumb-placeholder { width: 46px; height: 46px; border-radius: 5px;
       background: var(--surface2); flex-shrink: 0; display: flex;
       align-items: center; justify-content: center; color: var(--text-dim); }
     .track-info { flex: 1; min-width: 0; }
-    .track-name { font-size: 0.92rem; font-weight: 600; white-space: nowrap;
+    .track-name { font-size: 0.9rem; font-weight: 600; white-space: nowrap;
       overflow: hidden; text-overflow: ellipsis; }
-    .track-meta { font-size: 0.8rem; color: var(--text-dim); white-space: nowrap;
+    .track-meta { font-size: 0.78rem; color: var(--text-dim); white-space: nowrap;
       overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
-    .track-duration { font-size: 0.78rem; color: var(--text-dim); flex-shrink: 0; }
+    .track-duration { font-size: 0.75rem; color: var(--text-dim); flex-shrink: 0; }
+    .queue-num { width: 22px; text-align: center; font-size: 0.75rem;
+      color: var(--text-dim); flex-shrink: 0; }
 
-    /* ── Add button ── */
-    .add-btn { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; border: none;
+    /* Add button */
+    .add-btn { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; border: none;
       background: var(--green); color: #000; font-size: 1.2rem; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       transition: background 0.15s, transform 0.1s; }
     .add-btn:hover { background: #22d160; }
     .add-btn:active { transform: scale(0.92); }
     .add-btn:disabled { background: #333; color: #666; cursor: not-allowed; transform: none; }
-    .add-btn.added { background: #333; color: var(--green); }
+    .add-btn.added { background: #1a3a1a; color: var(--green); font-size: 0.9rem; }
 
-    /* ── States ── */
-    .state-msg { text-align: center; padding: 40px 0; color: var(--text-dim); font-size: 0.9rem; }
-    .state-msg .icon { font-size: 2.5rem; margin-bottom: 10px; }
+    /* Queue header */
+    .queue-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .refresh-btn { background: none; border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text-dim); font-size: 0.78rem; padding: 5px 10px; cursor: pointer;
+      display: flex; align-items: center; gap: 5px; transition: border-color 0.15s, color 0.15s; }
+    .refresh-btn:hover { border-color: #555; color: var(--text); }
+    .refresh-btn svg { transition: transform 0.5s; }
+    .refresh-btn.spinning svg { transform: rotate(360deg); }
+
+    /* States */
+    .state-msg { text-align: center; padding: 32px 0; color: var(--text-dim); font-size: 0.9rem; }
+    .state-msg .icon { font-size: 2rem; margin-bottom: 8px; }
     .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border);
       border-top-color: var(--green); border-radius: 50%; animation: spin 0.6s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Toast ── */
-    #toast { position: fixed; bottom: 24px; left: 50%;
-      transform: translateX(-50%) translateY(80px);
+    /* Toast */
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
       background: var(--surface2); border: 1px solid var(--border); border-radius: 24px;
       padding: 10px 20px; font-size: 0.88rem; white-space: nowrap; pointer-events: none;
-      transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), opacity 0.2s;
-      opacity: 0; z-index: 100; }
+      transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), opacity 0.2s; opacity: 0; z-index: 100; }
     #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
     #toast.success { border-color: var(--green); color: var(--green); }
     #toast.error { border-color: #ef4444; color: #ef4444; }
 
-    /* ── Now playing ── */
-    .now-playing-card { background: var(--surface); border: 1px solid var(--green);
-      border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px; }
-    .now-playing-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
-      text-transform: uppercase; color: var(--green); margin-bottom: 10px; }
-    .now-playing-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-    .now-playing-art { width: 48px; height: 48px; border-radius: 4px; flex-shrink: 0; object-fit: cover; }
-    .progress-bar { height: 3px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
-    .progress-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width 1s linear; }
-    .progress-times { display: flex; justify-content: space-between; font-size: 0.72rem;
-      color: var(--text-dim); margin-top: 4px; }
-
-    /* ── Playlist header ── */
-    .playlist-header { display: flex; align-items: center; gap: 14px; background: var(--surface);
-      border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 16px; }
-    .playlist-art { width: 56px; height: 56px; border-radius: 6px; object-fit: cover;
-      flex-shrink: 0; background: var(--surface2); }
-    .playlist-header-name { font-weight: 700; font-size: 1rem; white-space: nowrap;
-      overflow: hidden; text-overflow: ellipsis; }
-    .playlist-header-link { font-size: 0.8rem; color: var(--green); text-decoration: none;
-      display: inline-block; margin-top: 3px; }
-    .playlist-header-link:hover { text-decoration: underline; }
-    .queue-num { width: 24px; text-align: center; font-size: 0.78rem;
-      color: var(--text-dim); flex-shrink: 0; }
-    .refresh-btn { background: none; border: 1px solid var(--border); border-radius: 8px;
-      color: var(--text-dim); font-size: 0.82rem; padding: 6px 12px; cursor: pointer;
-      margin-bottom: 14px; display: flex; align-items: center; gap: 6px;
-      transition: border-color 0.15s, color 0.15s; }
-    .refresh-btn:hover { border-color: #555; color: var(--text); }
-    .refresh-btn svg { transition: transform 0.4s; }
-    .refresh-btn.spinning svg { transform: rotate(360deg); }
-
-    /* ── Error page ── */
+    /* Error page */
     .error-page { text-align: center; padding: 80px 24px; }
     .error-page .icon { font-size: 3rem; margin-bottom: 16px; }
     .error-page h2 { font-size: 1.2rem; margin-bottom: 8px; }
@@ -142,189 +117,72 @@
 <div id="toast"></div>
 
 <script>
-// ─── Extract event ID from URL path /e/{eventId} ──────────────────────────────
 const pathMatch = window.location.pathname.match(/^\/e\/([A-Za-z0-9]+)/);
 const eventId = pathMatch?.[1] || null;
-
 const app = document.getElementById('app');
 
 if (!eventId) {
-  app.innerHTML = `
-    <div class="error-page">
-      <div class="icon">🔗</div>
-      <h2>No event found</h2>
-      <p>Please scan the event QR code to join the party queue.</p>
-    </div>`;
+  app.innerHTML = `<div class="error-page"><div class="icon">🔗</div><h2>No event found</h2><p>Please scan the event QR code to join the party queue.</p></div>`;
 } else {
   initApp();
 }
 
 async function initApp() {
-  // Load event info first to show the name
   let eventName = 'Party Playlist';
   try {
     const r = await fetch(`/api/events/${eventId}`);
-    if (r.ok) {
-      const d = await r.json();
-      eventName = d.name || eventName;
-    } else if (r.status === 404) {
-      app.innerHTML = `
-        <div class="error-page">
-          <div class="icon">🎉</div>
-          <h2>Event not found</h2>
-          <p>This event may have ended or the link is no longer valid.</p>
-        </div>`;
+    if (r.ok) { const d = await r.json(); eventName = d.name || eventName; }
+    else if (r.status === 404) {
+      app.innerHTML = `<div class="error-page"><div class="icon">🎉</div><h2>Event not found</h2><p>This event may have ended.</p></div>`;
       return;
     }
-  } catch { /* use default name */ }
+  } catch { /* use default */ }
 
-  // Render the main UI
   app.innerHTML = `
     <header>
-      <svg class="logo" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg class="logo" viewBox="0 0 48 48" fill="none">
         <circle cx="24" cy="24" r="24" fill="#1db954"/>
         <path d="M34.8 33.5c-.4.6-1.1.8-1.7.4-4.7-2.9-10.6-3.5-17.6-1.9-.7.2-1.3-.3-1.5-1-.2-.7.3-1.3 1-1.5 7.6-1.7 14.2-1 19.4 2.2.7.4.9 1.2.4 1.8zm2.3-5.2c-.5.7-1.4 1-2.1.5-5.4-3.3-13.6-4.3-20-2.3-.8.2-1.6-.2-1.9-1-.2-.8.2-1.6 1-1.9 7.3-2.2 16.3-1.1 22.5 2.7.7.4.9 1.3.5 2zm.2-5.4C31 19.5 21 19.2 15 21.1c-.9.3-1.9-.2-2.2-1.1-.3-.9.2-1.9 1.1-2.2 6.9-2.1 18.4-1.7 25.6 2.5.8.5 1.1 1.5.6 2.4-.5.8-1.6 1.1-2.4.6z" fill="#000"/>
       </svg>
-      <div class="event-name" id="event-name">${escHtml(eventName)}</div>
-      <p class="subtitle">Search for a song and add it to the queue</p>
+      <div class="event-name">${escHtml(eventName)}</div>
+      <p class="subtitle">Add songs to the party queue</p>
     </header>
 
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="search">Search</button>
-      <button class="tab-btn" data-tab="queue">Queue</button>
-    </div>
+    <div id="now-playing-wrap"></div>
 
-    <div id="tab-search" class="tab-panel active">
-      <div class="search-wrap">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input id="search-input" type="search" placeholder="Song name or artist…"
-          autocomplete="off" autocorrect="off" spellcheck="false" />
-      </div>
-      <div id="search-results" class="track-list">
-        <div class="state-msg"><div class="icon">🎵</div>Type to search for any song</div>
-      </div>
+    <div class="section-label">Search</div>
+    <div class="search-wrap">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input id="search-input" type="search" placeholder="Song name or artist…" autocomplete="off" autocorrect="off" spellcheck="false" />
+      <button class="clear-btn" id="clear-btn">✕</button>
     </div>
+    <div id="search-results" class="track-list" style="margin-top:10px;min-height:40px;"></div>
 
-    <div id="tab-queue" class="tab-panel">
-      <div id="now-playing"></div>
-      <div id="queue-header"></div>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-top:24px; margin-bottom:10px;">
+      <div class="section-label" style="margin:0;">Queue</div>
       <button class="refresh-btn" id="refresh-btn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
         </svg>
-        Refresh queue
+        Refresh
       </button>
-      <div id="queue-list" class="track-list">
-        <div class="state-msg"><span class="spinner"></span></div>
-      </div>
-    </div>`;
-
-  // ── Tabs
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
-      if (btn.dataset.tab === 'queue') loadQueue();
-    });
-  });
-
-  // ── Search
-  const addedUris = new Set();
-  let searchTimer;
-  const searchInput = document.getElementById('search-input');
-  const searchResults = document.getElementById('search-results');
-
-  searchInput.addEventListener('input', () => {
-    clearTimeout(searchTimer);
-    const q = searchInput.value.trim();
-    if (!q) {
-      searchResults.innerHTML = `<div class="state-msg"><div class="icon">🎵</div>Type to search for any song</div>`;
-      return;
-    }
-    searchResults.innerHTML = `<div class="state-msg"><span class="spinner"></span></div>`;
-    searchTimer = setTimeout(() => doSearch(q), 380);
-  });
-
-  async function doSearch(q) {
-    try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&eventId=${encodeURIComponent(eventId)}`);
-      const data = await res.json();
-      if (!res.ok) {
-        searchResults.innerHTML = `<div class="state-msg">Error: ${escHtml(data.error)}</div>`;
-        return;
-      }
-      if (!data.tracks?.length) {
-        searchResults.innerHTML = `<div class="state-msg"><div class="icon">🤷</div>No results found</div>`;
-        return;
-      }
-      searchResults.innerHTML = data.tracks.map(t => `
-        <div class="track-item" data-uri="${escHtml(t.uri)}">
-          ${thumb(t.image, t.album)}
-          <div class="track-info">
-            <div class="track-name">${escHtml(t.name)}</div>
-            <div class="track-meta">${escHtml(t.artists)} · ${escHtml(t.album)}</div>
-          </div>
-          <span class="track-duration">${fmt(t.duration_ms)}</span>
-          <button
-            class="add-btn${addedUris.has(t.uri) ? ' added' : ''}"
-            data-uri="${escHtml(t.uri)}"
-            data-name="${escHtml(t.name)}"
-            aria-label="Add ${escHtml(t.name)}"
-            ${addedUris.has(t.uri) ? 'disabled' : ''}
-          >${addedUris.has(t.uri) ? '✓' : '+'}</button>
-        </div>`).join('');
-    } catch {
-      searchResults.innerHTML = `<div class="state-msg">Network error — check your connection</div>`;
-    }
-  }
-
-  searchResults.addEventListener('click', async e => {
-    const btn = e.target.closest('.add-btn');
-    if (!btn || btn.disabled) return;
-    const uri = btn.dataset.uri;
-    const name = btn.dataset.name;
-    btn.disabled = true;
-    btn.textContent = '…';
-    try {
-      const res = await fetch('/api/add-track', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uri, eventId }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        addedUris.add(uri);
-        btn.classList.add('added');
-        btn.textContent = '✓';
-        toast(`Added "${name}" to the queue!`);
-      } else {
-        btn.disabled = false;
-        btn.textContent = '+';
-        toast(data.error || 'Could not add track', 'error');
-      }
-    } catch {
-      btn.disabled = false;
-      btn.textContent = '+';
-      toast('Network error — try again', 'error');
-    }
-  });
+    </div>
+    <div id="queue-list" class="track-list"></div>`;
 
   // ── Now Playing
   async function loadNowPlaying() {
-    const el = document.getElementById('now-playing');
-    if (!el) return;
+    const wrap = document.getElementById('now-playing-wrap');
+    if (!wrap) return;
     try {
       const res = await fetch(`/api/now-playing?eventId=${eventId}`);
       const data = await res.json();
-      if (!data.playing || !data.track) { el.innerHTML = ''; return; }
+      if (!data.playing || !data.track) { wrap.innerHTML = ''; return; }
       const t = data.track;
       const pct = data.progress_ms && t.duration_ms ? Math.round(data.progress_ms / t.duration_ms * 100) : 0;
-      el.innerHTML = `
-        <div class="now-playing-card">
+      wrap.innerHTML = `
+        <div class="now-playing-card" style="margin-bottom:0;">
           <div class="now-playing-label">Now playing</div>
           <div class="now-playing-row">
             ${t.image ? `<img class="now-playing-art" src="${escHtml(t.image)}" alt="${escHtml(t.name)}" />` : ''}
@@ -341,35 +199,20 @@ async function initApp() {
 
   // ── Queue
   async function loadQueue() {
-    const queueList = document.getElementById('queue-list');
-    const queueHeader = document.getElementById('queue-header');
-    const refreshBtn = document.getElementById('refresh-btn');
-    refreshBtn.classList.add('spinning');
-    queueList.innerHTML = `<div class="state-msg"><span class="spinner"></span></div>`;
+    const list = document.getElementById('queue-list');
+    const btn = document.getElementById('refresh-btn');
+    btn.classList.add('spinning');
+    list.innerHTML = `<div class="state-msg"><span class="spinner"></span></div>`;
     try {
-      const [playlistRes, ] = await Promise.all([
-        fetch(`/api/playlist?eventId=${eventId}`),
-        loadNowPlaying(),
-      ]);
-      const data = await playlistRes.json();
-      refreshBtn.classList.remove('spinning');
-      if (!playlistRes.ok) {
-        queueList.innerHTML = `<div class="state-msg">Error: ${escHtml(data.error)}</div>`;
-        return;
-      }
-      queueHeader.innerHTML = `
-        <div class="playlist-header">
-          ${data.image ? `<img class="playlist-art" src="${escHtml(data.image)}" alt="playlist" />` : ''}
-          <div>
-            <div class="playlist-header-name">${escHtml(data.name)}</div>
-            ${data.url ? `<a class="playlist-header-link" href="${escHtml(data.url)}" target="_blank" rel="noopener">Open in Spotify ↗</a>` : ''}
-          </div>
-        </div>`;
+      const res = await fetch(`/api/playlist?eventId=${eventId}`);
+      const data = await res.json();
+      btn.classList.remove('spinning');
+      if (!res.ok) { list.innerHTML = `<div class="state-msg">Error loading queue</div>`; return; }
       if (!data.tracks?.length) {
-        queueList.innerHTML = `<div class="state-msg"><div class="icon">📭</div>No tracks yet — be the first!</div>`;
+        list.innerHTML = `<div class="state-msg"><div class="icon">📭</div>No songs yet — be the first!</div>`;
         return;
       }
-      queueList.innerHTML = data.tracks.map((t, i) => `
+      list.innerHTML = data.tracks.map((t, i) => `
         <div class="track-item">
           <span class="queue-num">${i + 1}</span>
           ${thumb(t.image, t.album)}
@@ -380,38 +223,106 @@ async function initApp() {
           <span class="track-duration">${fmt(t.duration_ms)}</span>
         </div>`).join('');
     } catch {
-      refreshBtn.classList.remove('spinning');
-      queueList.innerHTML = `<div class="state-msg">Network error — check your connection</div>`;
+      btn.classList.remove('spinning');
+      list.innerHTML = `<div class="state-msg">Network error</div>`;
     }
   }
 
-  document.getElementById('refresh-btn').addEventListener('click', loadQueue);
-  // Auto-refresh now playing every 15s when queue tab is active
-  setInterval(() => {
-    if (document.getElementById('tab-queue')?.classList.contains('active')) loadNowPlaying();
-  }, 15000);
+  // ── Search
+  const addedUris = new Set();
+  let searchTimer;
+  const searchInput = document.getElementById('search-input');
+  const searchResults = document.getElementById('search-results');
+
+  document.getElementById('clear-btn').addEventListener('click', () => {
+    searchInput.value = '';
+    searchResults.innerHTML = '';
+    searchInput.focus();
+  });
+
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    const q = searchInput.value.trim();
+    if (!q) { searchResults.innerHTML = ''; return; }
+    searchResults.innerHTML = `<div class="state-msg"><span class="spinner"></span></div>`;
+    searchTimer = setTimeout(() => doSearch(q), 380);
+  });
+
+  async function doSearch(q) {
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&eventId=${encodeURIComponent(eventId)}`);
+      const data = await res.json();
+      if (!res.ok) { searchResults.innerHTML = `<div class="state-msg">Error: ${escHtml(data.error)}</div>`; return; }
+      if (!data.tracks?.length) { searchResults.innerHTML = `<div class="state-msg">No results found</div>`; return; }
+      searchResults.innerHTML = data.tracks.map(t => `
+        <div class="track-item">
+          ${thumb(t.image, t.album)}
+          <div class="track-info">
+            <div class="track-name">${escHtml(t.name)}</div>
+            <div class="track-meta">${escHtml(t.artists)} · ${escHtml(t.album)}</div>
+          </div>
+          <span class="track-duration">${fmt(t.duration_ms)}</span>
+          <button class="add-btn${addedUris.has(t.uri) ? ' added' : ''}"
+            data-uri="${escHtml(t.uri)}" data-name="${escHtml(t.name)}"
+            ${addedUris.has(t.uri) ? 'disabled' : ''}>
+            ${addedUris.has(t.uri) ? '✓' : '+'}
+          </button>
+        </div>`).join('');
+    } catch { searchResults.innerHTML = `<div class="state-msg">Network error</div>`; }
+  }
+
+  searchResults.addEventListener('click', async e => {
+    const btn = e.target.closest('.add-btn');
+    if (!btn || btn.disabled) return;
+    const uri = btn.dataset.uri;
+    const name = btn.dataset.name;
+    btn.disabled = true; btn.textContent = '…';
+    try {
+      const res = await fetch('/api/add-track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uri, eventId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        addedUris.add(uri);
+        btn.classList.add('added'); btn.textContent = '✓';
+        toast(`Added "${name}"!`);
+        setTimeout(loadQueue, 800); // refresh queue after adding
+      } else {
+        btn.disabled = false; btn.textContent = '+';
+        toast(data.error || 'Could not add track', 'error');
+      }
+    } catch { btn.disabled = false; btn.textContent = '+'; toast('Network error', 'error'); }
+  });
+
+  document.getElementById('refresh-btn').addEventListener('click', () => {
+    loadQueue();
+    loadNowPlaying();
+  });
+
+  // Initial load
+  loadQueue();
+  loadNowPlaying();
+  // Auto-refresh now playing every 15s
+  setInterval(loadNowPlaying, 15000);
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmt(ms) {
   const s = Math.round(ms / 1000);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
-
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
 function thumb(url, alt) {
-  if (url) return `<img class="track-thumb" src="${url}" alt="${escHtml(alt)}" loading="lazy" />`;
+  if (url) return `<img class="track-thumb" src="${escHtml(url)}" alt="${escHtml(alt||'')}" loading="lazy" />`;
   return `<div class="track-thumb-placeholder"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>`;
 }
-
 let toastTimer;
 function toast(msg, type = 'success') {
   const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = `show ${type}`;
+  el.textContent = msg; el.className = `show ${type}`;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.className = ''; }, 3000);
 }
