@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       image: info.images?.[0]?.url || null,
       url: info.external_urls?.spotify || null,
       tracks,
-      _debug: { rawTotal: tracksData.total, rawItemCount: rawItems.length, filteredCount: tracks.length },
+      _debug: { rawTotal: tracksData.total, rawItemCount: rawItems.length, filteredCount: tracks.length, firstItemKeys: rawItems[0] ? Object.keys(rawItems[0]) : [], firstItem: rawItems[0] || null },
     });
   } catch (err) {
     console.error(err);
