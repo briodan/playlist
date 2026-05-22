@@ -1,15 +1,23 @@
 const { spotifyFetch } = require('./_spotify');
+const { getEventHost } = require('./_kv');
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end();
 
   const q = (req.query.q || '').trim();
+  const eventId = (req.query.eventId || '').trim();
+
   if (!q) return res.status(400).json({ error: 'Missing query parameter q' });
   if (q.length > 100) return res.status(400).json({ error: 'Query too long' });
+  if (!eventId) return res.status(400).json({ error: 'Missing eventId' });
+
+  const hostId = await getEventHost(eventId);
+  if (!hostId) return res.status(404).json({ error: 'Event not found' });
 
   try {
     const r = await spotifyFetch(
-      `/search?q=${encodeURIComponent(q)}&type=track&limit=10&market=from_token`
+      hostId,
+      `/search?q=${encodeURIComponent(q)}&type=track&limit=10`
     );
 
     if (!r.ok) {
@@ -19,7 +27,6 @@ export default async function handler(req, res) {
     }
 
     const data = await r.json();
-
     const tracks = (data.tracks?.items || []).map((t) => ({
       id: t.id,
       name: t.name,

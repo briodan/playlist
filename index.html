@@ -238,7 +238,7 @@ async function initApp() {
 
   async function doSearch(q) {
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&eventId=${encodeURIComponent(eventId)}`);
       const data = await res.json();
       if (!res.ok) {
         searchResults.innerHTML = `<div class="state-msg">Error: ${escHtml(data.error)}</div>`;
