@@ -6,7 +6,10 @@
 export default function handler(req, res) {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   if (!clientId) return res.status(500).send('SPOTIFY_CLIENT_ID must be set.');
-  const appUrl = process.env.APP_URL || `https://${req.headers.host}`;
+  const appUrl =
+    process.env.APP_URL ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`) ||
+    `https://${req.headers['x-forwarded-host'] || req.headers.host}`;
 
   // Generate a new hostId for this auth attempt (the callback will check
   // if this Spotify user already has one and reuse it if so).

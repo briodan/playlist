@@ -18,7 +18,10 @@ export default async function handler(req, res) {
   if (!code || !UUID_RE.test(state)) return res.redirect('/host?error=invalid_callback');
 
   const { SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET } = process.env;
-    const APP_URL = process.env.APP_URL || `https://${req.headers.host}`;
+    const APP_URL =
+      process.env.APP_URL ||
+      (process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`) ||
+      `https://${req.headers['x-forwarded-host'] || req.headers.host}`;
 
   try {
     // Exchange code for tokens
