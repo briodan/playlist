@@ -96,6 +96,18 @@
     #toast.success { border-color: var(--green); color: var(--green); }
     #toast.error { border-color: #ef4444; color: #ef4444; }
 
+    /* ── Now playing ── */
+    .now-playing-card { background: var(--surface); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px; }
+    .now-playing-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--green); margin-bottom: 10px; }
+    .now-playing-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .now-playing-art { width: 48px; height: 48px; border-radius: 4px; flex-shrink: 0; object-fit: cover; }
+    .progress-bar { height: 3px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width 1s linear; }
+    .progress-times { display: flex; justify-content: space-between; font-size: 0.72rem;
+      color: var(--text-dim); margin-top: 4px; }
+
     /* ── Playlist header ── */
     .playlist-header { display: flex; align-items: center; gap: 14px; background: var(--surface);
       border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 16px; }
@@ -196,6 +208,7 @@ async function initApp() {
     </div>
 
     <div id="tab-queue" class="tab-panel">
+      <div id="now-playing"></div>
       <div id="queue-header"></div>
       <button class="refresh-btn" id="refresh-btn">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -300,6 +313,32 @@ async function initApp() {
     }
   });
 
+  // ── Now Playing
+  async function loadNowPlaying() {
+    const el = document.getElementById('now-playing');
+    if (!el) return;
+    try {
+      const res = await fetch(`/api/now-playing?eventId=${eventId}`);
+      const data = await res.json();
+      if (!data.playing || !data.track) { el.innerHTML = ''; return; }
+      const t = data.track;
+      const pct = data.progress_ms && t.duration_ms ? Math.round(data.progress_ms / t.duration_ms * 100) : 0;
+      el.innerHTML = `
+        <div class="now-playing-card">
+          <div class="now-playing-label">Now playing</div>
+          <div class="now-playing-row">
+            ${t.image ? `<img class="now-playing-art" src="${escHtml(t.image)}" alt="${escHtml(t.name)}" />` : ''}
+            <div class="track-info">
+              <div class="track-name">${escHtml(t.name)}</div>
+              <div class="track-meta">${escHtml(t.artists)} · ${escHtml(t.album)}</div>
+            </div>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <div class="progress-times"><span>${fmt(data.progress_ms||0)}</span><span>${fmt(t.duration_ms)}</span></div>
+        </div>`;
+    } catch { /* silent */ }
+  }
+
   // ── Queue
   async function loadQueue() {
     const queueList = document.getElementById('queue-list');
@@ -308,10 +347,13 @@ async function initApp() {
     refreshBtn.classList.add('spinning');
     queueList.innerHTML = `<div class="state-msg"><span class="spinner"></span></div>`;
     try {
-      const res = await fetch(`/api/playlist?eventId=${eventId}`);
-      const data = await res.json();
+      const [playlistRes, ] = await Promise.all([
+        fetch(`/api/playlist?eventId=${eventId}`),
+        loadNowPlaying(),
+      ]);
+      const data = await playlistRes.json();
       refreshBtn.classList.remove('spinning');
-      if (!res.ok) {
+      if (!playlistRes.ok) {
         queueList.innerHTML = `<div class="state-msg">Error: ${escHtml(data.error)}</div>`;
         return;
       }
@@ -344,6 +386,10 @@ async function initApp() {
   }
 
   document.getElementById('refresh-btn').addEventListener('click', loadQueue);
+  // Auto-refresh now playing every 15s when queue tab is active
+  setInterval(() => {
+    if (document.getElementById('tab-queue')?.classList.contains('active')) loadNowPlaying();
+  }, 15000);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
