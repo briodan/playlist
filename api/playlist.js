@@ -14,8 +14,8 @@ export default async function handler(req, res) {
     if (!hostId) return res.status(404).json({ error: 'Event not found' });
 
     const [infoRes, tracksRes] = await Promise.all([
-      spotifyFetch(hostId, `/playlists/${eventId}?fields=name,description,images,external_urls`),
-      spotifyFetch(hostId, `/playlists/${eventId}/items?fields=items(track(id,name,artists,album,duration_ms,uri))&limit=50`),
+      spotifyFetch(hostId, `/playlists/${eventId}`),
+      spotifyFetch(hostId, `/playlists/${eventId}/items?limit=50`),
     ]);
 
     if (!infoRes.ok || !tracksRes.ok) {
