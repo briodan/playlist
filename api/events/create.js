@@ -1,6 +1,6 @@
 const { getHostId } = require('../_auth');
 const { createPlaylist } = require('../_spotify');
-const { setEventHost } = require('../_kv');
+const { setEventHost, addHostEvent } = require('../_kv');
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
@@ -24,8 +24,16 @@ export default async function handler(req, res) {
 
     // Record which host owns this event so guest APIs can use the right token
     await setEventHost(playlist.id, hostId);
-
+    // Store event metadata in KV so listing doesn't need Spotify API
     const appUrl = process.env.APP_URL || `https://${req.headers.host}`;
+    await addHostEvent(hostId, playlist.id, {
+      id: playlist.id,
+      name: playlist.name,
+      url: playlist.url,
+      image: playlist.image,
+      guestUrl: `${appUrl}/e/${playlist.id}`,
+    });
+
     return res.status(201).json({
       id: playlist.id,
       name: playlist.name,

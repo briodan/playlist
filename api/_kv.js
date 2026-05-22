@@ -14,4 +14,18 @@ async function setHostIdBySpotifyUser(id, hostId) { return redis.set(`spotify:${
 async function getEventHost(playlistId) { return redis.get(`event:${playlistId}:hostId`); }
 async function setEventHost(playlistId, hostId) { return redis.set(`event:${playlistId}:hostId`, hostId); }
 
-module.exports = { getHostToken, setHostToken, getHostIdBySpotifyUser, setHostIdBySpotifyUser, getEventHost, setEventHost };
+async function addHostEvent(hostId, eventId, meta) {
+  await redis.lpush(`host:${hostId}:events`, eventId);
+  await redis.set(`event:${eventId}:meta`, JSON.stringify(meta));
+}
+
+async function getHostEvents(hostId) {
+  const ids = await redis.lrange(`host:${hostId}:events`, 0, 99);
+  if (!ids || ids.length === 0) return [];
+  const metas = await Promise.all(ids.map(id => redis.get(`event:${id}:meta`)));
+  return metas
+    .map((m, i) => { try { return typeof m === 'string' ? JSON.parse(m) : m; } catch { return null; } })
+    .filter(Boolean);
+}
+
+module.exports = { getHostToken, setHostToken, getHostIdBySpotifyUser, setHostIdBySpotifyUser, getEventHost, setEventHost, addHostEvent, getHostEvents };
