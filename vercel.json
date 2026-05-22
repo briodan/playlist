@@ -1,8 +1,7 @@
 {
   "version": 2,
+  "cleanUrls": true,
   "rewrites": [
-    { "source": "/e/:eventId", "destination": "/index.html" },
-    { "source": "/host", "destination": "/host.html" },
-    { "source": "/", "destination": "/host.html" }
+    { "source": "/e/:eventId", "destination": "/index.html" }
   ]
 }
