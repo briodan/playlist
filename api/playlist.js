@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
     const [infoRes, tracksRes] = await Promise.all([
       spotifyFetch(hostId, `/playlists/${eventId}?fields=name,description,images,external_urls`),
-      spotifyFetch(hostId, `/playlists/${eventId}/tracks?fields=items(track(id,name,artists,album,duration_ms,uri))&limit=50`),
+      spotifyFetch(hostId, `/playlists/${eventId}/items?fields=items(track(id,name,artists,album,duration_ms,uri))&limit=50`),
     ]);
 
     if (!infoRes.ok || !tracksRes.ok) {

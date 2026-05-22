@@ -55,7 +55,7 @@ export default async function handler(req, res) {
     const hostId = await getEventHost(eventId);
     if (!hostId) return res.status(404).json({ error: 'Event not found' });
 
-    const checkRes = await spotifyFetch(hostId, `/playlists/${eventId}/tracks?fields=items(track(uri))&limit=50`);
+    const checkRes = await spotifyFetch(hostId, `/playlists/${eventId}/items?fields=items(track(uri))&limit=50`);
     if (checkRes.ok) {
       const { items = [] } = await checkRes.json();
       if (items.map(i => i.track?.uri).includes(trackUri)) {
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
       }
     }
 
-    const addRes = await spotifyFetch(hostId, `/playlists/${eventId}/tracks`, {
+    const addRes = await spotifyFetch(hostId, `/playlists/${eventId}/items`, {
       method: 'POST',
       body: JSON.stringify({ uris: [trackUri] }),
     });

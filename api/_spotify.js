@@ -69,8 +69,7 @@ async function getMe(hostId) {
 
 /** Creates a new tagged playlist for this host and returns its info. */
 async function createPlaylist(hostId, name) {
-  const userId = await getMe(hostId);
-  const res = await spotifyFetch(hostId, `/users/${userId}/playlists`, {
+  const res = await spotifyFetch(hostId, `/me/playlists`, {
     method: 'POST',
     body: JSON.stringify({
       name,
