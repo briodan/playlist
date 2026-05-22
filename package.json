@@ -1,0 +1,12 @@
+{
+  "name": "party-playlist",
+  "version": "1.0.0",
+  "description": "Spotify party playlist web app",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@vercel/kv": "^3.0.0",
+    "qrcode": "^1.5.4"
+  }
+}
