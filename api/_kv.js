@@ -1,31 +1,17 @@
-const { kv } = require('@vercel/kv');
+const { Redis } = require('@upstash/redis');
 
-// Host token — keyed by hostId (UUID)
-async function getHostToken(hostId) {
-  return kv.get(`host:${hostId}:token`);
-}
-async function setHostToken(hostId, token) {
-  return kv.set(`host:${hostId}:token`, token);
-}
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN,
+});
 
-// Spotify userId → hostId mapping (so re-authing restores the same hostId)
-async function getHostIdBySpotifyUser(spotifyUserId) {
-  return kv.get(`spotify:${spotifyUserId}:hostId`);
-}
-async function setHostIdBySpotifyUser(spotifyUserId, hostId) {
-  return kv.set(`spotify:${spotifyUserId}:hostId`, hostId);
-}
+async function getHostToken(hostId) { return redis.get(`host:${hostId}:token`); }
+async function setHostToken(hostId, token) { return redis.set(`host:${hostId}:token`, token); }
 
-// Event (playlist) → hostId mapping (so guest APIs know which token to use)
-async function getEventHost(playlistId) {
-  return kv.get(`event:${playlistId}:hostId`);
-}
-async function setEventHost(playlistId, hostId) {
-  return kv.set(`event:${playlistId}:hostId`, hostId);
-}
+async function getHostIdBySpotifyUser(id) { return redis.get(`spotify:${id}:hostId`); }
+async function setHostIdBySpotifyUser(id, hostId) { return redis.set(`spotify:${id}:hostId`, hostId); }
 
-module.exports = {
-  getHostToken, setHostToken,
-  getHostIdBySpotifyUser, setHostIdBySpotifyUser,
-  getEventHost, setEventHost,
-};
+async function getEventHost(playlistId) { return redis.get(`event:${playlistId}:hostId`); }
+async function setEventHost(playlistId, hostId) { return redis.set(`event:${playlistId}:hostId`, hostId); }
+
+module.exports = { getHostToken, setHostToken, getHostIdBySpotifyUser, setHostIdBySpotifyUser, getEventHost, setEventHost };
