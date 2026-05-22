@@ -48,15 +48,30 @@ export default async function handler(req, res) {
     });
     const createBody = await createRes.json();
     playlistTest = { status: createRes.status, body: createBody };
-    // Clean up if it worked
     if (createRes.ok && createBody.id) {
       await fetch(`https://api.spotify.com/v1/playlists/${createBody.id}/followers`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${accessToken}` },
+        method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` },
       });
     }
   } catch (e) {
     playlistTest = { error: e.message };
+  }
+
+  // Test adding a track to a known public playlist (Spotify's own "Top Hits" playlist)
+  // Uses a real public playlist ID - only works if we own it, so test on a user-owned one
+  // Instead: test if we can read playlists (confirms token + scope work for reads)
+  let addTrackTest = 'skipped - need existing playlist id';
+  if (req.query.playlist) {
+    try {
+      const addRes = await fetch(`https://api.spotify.com/v1/playlists/${req.query.playlist}/tracks`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uris: ['spotify:track:4uLU6hMCjMI75M1A2tKUQC'] }), // "Never Gonna Give You Up"
+      });
+      addTrackTest = { status: addRes.status, body: await addRes.json() };
+    } catch (e) {
+      addTrackTest = { error: e.message };
+    }
   }
 
   return res.json({
@@ -68,5 +83,6 @@ export default async function handler(req, res) {
     product: meInfo.product,
     displayName: meInfo.display_name,
     playlistTest,
+    addTrackTest,
   });
 }
