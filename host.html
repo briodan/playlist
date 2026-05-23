@@ -107,6 +107,28 @@
       padding: 8px 12px; margin-bottom: 12px; font-family: monospace; }
     .qr-btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 
+    /* ── Track list panel ── */
+    .event-tracks-panel { display: none; border-top: 1px solid var(--border); background: var(--surface2); }
+    .event-tracks-panel.open { display: block; }
+    .track-list { list-style: none; }
+    .track-item { display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+      border-bottom: 1px solid var(--border); }
+    .track-item:last-child { border-bottom: none; }
+    .track-thumb { width: 40px; height: 40px; border-radius: 4px; object-fit: cover;
+      flex-shrink: 0; background: var(--surface); }
+    .track-info { flex: 1; min-width: 0; }
+    .track-name { font-size: 0.88rem; font-weight: 600; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; }
+    .track-artist { font-size: 0.78rem; color: var(--text-dim); white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; }
+    .track-remove-btn { flex-shrink: 0; background: none; border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text-dim); font-size: 0.78rem; padding: 4px 10px;
+      cursor: pointer; transition: border-color 0.15s, color 0.15s; }
+    .track-remove-btn:hover { border-color: #ef4444; color: #f87171; }
+    .track-remove-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .tracks-loading { padding: 20px; text-align: center; color: var(--text-dim); font-size: 0.85rem; }
+    .tracks-empty { padding: 20px; text-align: center; color: var(--text-dim); font-size: 0.85rem; }
+
     /* ── Password gate ── */
     .password-gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
     .password-box { background: var(--surface); border: 1px solid var(--border);
@@ -346,9 +368,13 @@ function renderEventCard(e) {
           <div class="event-meta">${escHtml(e.guestUrl)}</div>
         </div>
         <div class="event-actions">
+          <button class="btn btn-secondary btn-sm tracks-toggle-btn">Tracks</button>
           <button class="btn btn-secondary btn-sm qr-toggle-btn">QR code</button>
           ${e.url ? `<a class="btn btn-secondary btn-sm" href="${escHtml(e.url)}" target="_blank" rel="noopener" style="text-decoration:none;">Spotify ↗</a>` : ''}
         </div>
+      </div>
+      <div class="event-tracks-panel">
+        <div class="tracks-loading"><span class="spinner"></span></div>
       </div>
       <div class="event-qr-panel">
         <img src="/api/qr/${escHtml(e.id)}" alt="QR code for ${escHtml(e.name)}" />
@@ -375,6 +401,76 @@ function attachQrToggle(card, eventData) {
     navigator.clipboard.writeText(eventData.guestUrl).then(() => {
       copyBtn.textContent = 'Copied!';
       setTimeout(() => { copyBtn.textContent = 'Copy link'; }, 2000);
+    });
+  });
+
+  const tracksBtn = card.querySelector('.tracks-toggle-btn');
+  const tracksPanel = card.querySelector('.event-tracks-panel');
+  let tracksLoaded = false;
+
+  tracksBtn?.addEventListener('click', async () => {
+    const open = tracksPanel.classList.toggle('open');
+    tracksBtn.textContent = open ? 'Hide tracks' : 'Tracks';
+    if (open && !tracksLoaded) {
+      tracksLoaded = true;
+      await loadTracks(card, tracksPanel, eventData.id);
+    }
+  });
+}
+
+async function loadTracks(card, panel, eventId) {
+  try {
+    const res = await fetch(`/api/playlist?eventId=${encodeURIComponent(eventId)}`);
+    const data = await res.json();
+    if (!res.ok) {
+      panel.innerHTML = `<div class="tracks-empty">${escHtml(data.error || 'Failed to load tracks')}</div>`;
+      return;
+    }
+    renderTrackList(card, panel, eventId, data.tracks || []);
+  } catch (err) {
+    panel.innerHTML = `<div class="tracks-empty">${escHtml(err.message)}</div>`;
+  }
+}
+
+function renderTrackList(card, panel, eventId, tracks) {
+  if (tracks.length === 0) {
+    panel.innerHTML = `<div class="tracks-empty">No tracks yet.</div>`;
+    return;
+  }
+
+  panel.innerHTML = `<ul class="track-list">${tracks.map(t => `
+    <li class="track-item" data-uri="${escHtml(t.uri)}">
+      ${t.image ? `<img class="track-thumb" src="${escHtml(t.image)}" alt="" loading="lazy" />` : `<div class="track-thumb"></div>`}
+      <div class="track-info">
+        <div class="track-name">${escHtml(t.name)}</div>
+        <div class="track-artist">${escHtml(t.artists)}</div>
+      </div>
+      <button class="track-remove-btn">Remove</button>
+    </li>`).join('')}</ul>`;
+
+  panel.querySelectorAll('.track-item').forEach(item => {
+    const btn = item.querySelector('.track-remove-btn');
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      btn.textContent = '…';
+      try {
+        const r = await fetch('/api/remove-track', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventId, uri: item.dataset.uri }),
+        });
+        const d = await r.json();
+        if (!r.ok) { toast(d.error || 'Failed to remove', 'error'); btn.disabled = false; btn.textContent = 'Remove'; return; }
+        item.remove();
+        if (!panel.querySelector('.track-item')) {
+          panel.innerHTML = `<div class="tracks-empty">No tracks yet.</div>`;
+        }
+        toast('Track removed');
+      } catch (err) {
+        toast(err.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Remove';
+      }
     });
   });
 }
